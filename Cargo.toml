@@ -8,6 +8,7 @@ clap = "2.14.0"
 log = "0.3.6"
 log4rs = "0.5.0"
 mdmatter = "0.0.1"
+walkdir = "0.1.8"
 
 [dev-dependencies]
 stainless = "0.1.7"

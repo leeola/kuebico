@@ -3,6 +3,7 @@
 #[macro_use]
 extern crate log;
 extern crate mdmatter;
+extern crate walkdir;
 
 #[macro_use]
 mod util;
