@@ -4,28 +4,28 @@ use std::fmt::{self, Debug};
 // #[cfg(feature = "fs-storage")]
 pub mod fs;
 
-pub enum Error<E> {
+pub enum Error {
     /// The given Page name could not be found.
     PageNotFound(String),
 
     /// A generic error type provided by the storage implementor.
-    ImplError(E),
+    ImplError(Box<error::Error>),
 }
 
-pub type PageResult<E> = Result<Page, Error<E>>;
+pub type PageResult = Result<Page, Error>;
 
 /// The backend used for basic page crud operations.
-pub trait Storage<E> {
-    fn read(&self, name: String) -> PageResult<E>;
+pub trait Storage {
+    fn read(&self, name: String) -> PageResult;
 
-    fn write(&self, name: &str, data: &str) -> Result<(), Error<E>>;
+    fn write(&self, name: &str, data: &str) -> Result<(), Error>;
 
     // not enabled yet. Many storage methods are to be added, for a complete backend.
     // fn search(query: &str) -> Result<Vec<Page>, E>
 }
 
 /// A Storage that can be iterated over, reading *all* pages.
-pub trait ExportableStorage<E>: Storage<E> + IntoIterator<Item = PageResult<E>> {}
+pub trait StorageIter: Iterator<Item = PageResult> {}
 
 /// A page, visible at a URL
 pub struct Page {

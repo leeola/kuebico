@@ -12,5 +12,5 @@ pub mod export;
 pub mod storage;
 
 pub mod prelude {
-    pub use super::export::{Exporter, ExporterSettings};
+    pub use super::export::{Exporter, ExportSettings, StorageType};
 }

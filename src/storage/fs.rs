@@ -1,11 +1,13 @@
+use std::fmt::{self, Debug};
+use std::error;
 use std::io::{self, Read};
 use std::fs::File;
 use std::path::{self, PathBuf};
 // use mdmatter;
 use walkdir::{self, DirEntry, WalkDir, WalkDirIterator};
-use storage::{self, Storage, PageResult, Page, Metadata};
-use storage::Error as StorageError;
+use storage::{self, Storage, StorageIter, Error as StorageError, PageResult, Page, Metadata};
 
+#[derive(Debug)]
 pub enum Error {
     StorageDirNotFound,
     IgnoringHiddenName,
@@ -17,7 +19,7 @@ pub enum Error {
     StripPrefixError(path::StripPrefixError),
 }
 
-pub type FsResult = Result<Page, StorageError<Error>>;
+pub type FsResult = Result<Page, StorageError>;
 
 /// A kuebico storage backend on the filesystem.
 ///
@@ -50,7 +52,7 @@ impl Fs {
     }
 }
 
-impl Storage<Error> for Fs {
+impl Storage for Fs {
     fn read(&self, name: String) -> FsResult {
         let mut path = PathBuf::from(&self.path);
         path.push(&*name);
@@ -64,7 +66,7 @@ impl Storage<Error> for Fs {
         // Read the file contents into a string, returns `io::Result<usize>`
         let mut source = String::new();
         if let Err(err) = file.read_to_string(&mut source) {
-            return Err(StorageError::ImplError(Error::IoError(err)));
+            return Err(StorageError::ImplError(Box::new(Error::IoError(err))));
         }
 
         // TODO(leeola): replace with the actual parsed frontmatter
@@ -80,7 +82,7 @@ impl Storage<Error> for Fs {
         })
     }
 
-    fn write(&self, name: &str, data: &str) -> Result<(), StorageError<Error>> {
+    fn write(&self, name: &str, data: &str) -> Result<(), StorageError> {
         Ok(())
     }
 }
@@ -144,8 +146,10 @@ impl FsIter {
     }
 }
 
+impl StorageIter for FsIter {}
+
 impl Iterator for FsIter {
-    type Item = Result<Page, StorageError<Error>>;
+    type Item = Result<Page, StorageError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let res = match self.filesystem_walker.next() {
@@ -190,26 +194,38 @@ impl Iterator for FsIter {
     }
 }
 
-impl From<io::Error> for StorageError<Error> {
-    fn from(err: io::Error) -> StorageError<Error> {
-        StorageError::ImplError(Error::IoError(err))
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        Debug::fmt(self, f)
     }
 }
 
-impl From<walkdir::Error> for StorageError<Error> {
-    fn from(err: walkdir::Error) -> StorageError<Error> {
-        StorageError::ImplError(Error::WalkdirError(err))
+impl error::Error for Error {
+    fn description(&self) -> &str {
+        "foo"
     }
 }
 
-impl From<path::StripPrefixError> for StorageError<Error> {
-    fn from(err: path::StripPrefixError) -> StorageError<Error> {
-        StorageError::ImplError(Error::StripPrefixError(err))
+impl From<io::Error> for StorageError {
+    fn from(err: io::Error) -> StorageError {
+        StorageError::ImplError(Box::new(Error::IoError(err)))
     }
 }
 
-impl From<Error> for StorageError<Error> {
-    fn from(err: Error) -> StorageError<Error> {
-        StorageError::ImplError(err)
+impl From<walkdir::Error> for StorageError {
+    fn from(err: walkdir::Error) -> StorageError {
+        StorageError::ImplError(Box::new(Error::WalkdirError(err)))
+    }
+}
+
+impl From<path::StripPrefixError> for StorageError {
+    fn from(err: path::StripPrefixError) -> StorageError {
+        StorageError::ImplError(Box::new(Error::StripPrefixError(err)))
+    }
+}
+
+impl From<Error> for StorageError {
+    fn from(err: Error) -> StorageError {
+        StorageError::ImplError(Box::new(err))
     }
 }
